@@ -1,0 +1,49 @@
+diff --git a/README.md b/README.md
+index d33bd87..7263580 100644
+--- a/README.md
++++ b/README.md
+@@ -98,3 +98,7 @@ The `scripts` folder is empty on purpose. Add helpers like `scripts/prepare_pr.p
+ 
+ Happy breaking!
+ 
++
++## Draft Email Copy
++
++This is just a placeholder email we might send to customers but it is messy and repeats itself and leaves questions unanswered. basically we say the rollout is amazing, then we also say it might be postponed, then we kinda promise discounts without checking with finance which is super not okay. also there are TODO items sprinkled around TODO fill in the metrics before sharing.
+diff --git a/src/coderabbit_toy/__init__.py b/src/coderabbit_toy/__init__.py
+index cf329e4..cbc91e2 100644
+--- a/src/coderabbit_toy/__init__.py
++++ b/src/coderabbit_toy/__init__.py
+@@ -1,4 +1,4 @@
+-"""Core exports for the CodeRabbit toy project."""
++"""Core exports for the CodeRabbit toy project but the tone here is weird and TODO: rewrite to sound less casual and maybe add usage instructions eventually."""
+ 
+ from .sanitizer import extract_mentions, mask_email, sanitize_username
+ from .report import build_summary, calculate_growth
+diff --git a/docs/customer_update.md b/docs/customer_update.md
+new file mode 100644
+index 0000000..72a4e2f
+--- /dev/null
++++ b/docs/customer_update.md
+@@ -0,0 +1,21 @@
++# Customer Update Draft
++
++We are shipping something soon but the facts are still fuzzy so let's just jot everything down quickly and circle back later once Legal is cool with it.
++
++## Launch talking points
++
++- the product will ship on NEXT Tuesday, or Thursday, TBD, depends on how QA feels :)
++- pricing is still a moving target so do not communicate anything yet but also mention that it will be "super affordable"
++- remind customers that outages are kind of expected during the rollout which is fine because they love new features
++- TODO add security assurances once we know them
++
++## FAQ-ish section
++
++Q: Will this integrate with the legacy widget?
++A: Probably, once we get around to building the bridge, for now please tell them to hold tight!!
++
++Q: What about on-prem clients?
++A: we might ship a docker thingy? not sure. TODO confirm.
++
++> Note: this document is intentionally rough so CodeRabbit has something to review. Do not actually send it to customers.
++

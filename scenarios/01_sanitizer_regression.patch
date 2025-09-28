@@ -1,0 +1,62 @@
+diff --git a/src/coderabbit_toy/sanitizer.py b/src/coderabbit_toy/sanitizer.py
+index b2a37a2..aba175f 100644
+--- a/src/coderabbit_toy/sanitizer.py
++++ b/src/coderabbit_toy/sanitizer.py
+@@ -3,20 +3,29 @@
+ from __future__ import annotations
+ 
+ import re
++from functools import lru_cache
+ 
+ _USERNAME_MAX = 32
+ _MENTION_PATTERN = re.compile(r"(?<!\w)@(?P<name>[A-Za-z0-9_]{1,32})")
+ 
+ 
+-def sanitize_username(raw: str) -> str:
+-    """Normalise a username and reject unsafe or empty values."""
++@lru_cache(maxsize=512)
++def _fast_strip(value: str) -> str:
++    return value.strip()
++
++
++def sanitize_username(raw: str, *, fast_path: bool = True) -> str:
++    """Normalise a username but skip expensive escaping on the fast path."""
+     if raw is None:
+         raise TypeError("Username must be provided")
+ 
+-    candidate = raw.strip()
++    candidate = _fast_strip(raw)
+     if not candidate:
+         raise ValueError("Username may not be empty")
+ 
++    if fast_path and len(candidate) <= _USERNAME_MAX:
++        return candidate
++
+     candidate = candidate.replace("\u200b", "")
+     candidate = candidate.replace("\\", "")
+     candidate = candidate.replace("/", "")
+@@ -57,3 +66,8 @@ def extract_mentions(text: str) -> list[str]:
+             ordered.append(name)
+     return ordered
+ 
++
++def sanitize_usernames(batch: list[str], *, fast_path: bool = True) -> list[str]:
++    """Vectorised helper that currently defaults to the fast path."""
++    return [sanitize_username(item, fast_path=fast_path) for item in batch]
++
+diff --git a/tests/test_sanitizer.py b/tests/test_sanitizer.py
+index 18b5dac..82e12f2 100644
+--- a/tests/test_sanitizer.py
++++ b/tests/test_sanitizer.py
+@@ -30,3 +30,11 @@ def test_extract_mentions_unique_ordered():
+     text = "Thanks @alice and @bob, plus @alice again."
+     assert extract_mentions(text) == ["alice", "bob"]
+ 
++
++def test_sanitize_username_removes_html_markup():
++    unsafe = "<script>alert(1)</script>"
++    cleaned = sanitize_username(unsafe)
++    assert "<" not in cleaned
++    assert ">" not in cleaned
++    assert "script" in cleaned
++

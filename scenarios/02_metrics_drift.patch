@@ -1,0 +1,86 @@
+diff --git a/src/coderabbit_toy/report.py b/src/coderabbit_toy/report.py
+index 00178a2..ced4a15 100644
+--- a/src/coderabbit_toy/report.py
++++ b/src/coderabbit_toy/report.py
+@@ -4,6 +4,7 @@ from __future__ import annotations
+ 
+ from dataclasses import dataclass
+ from statistics import mean
++from typing import Iterable
+ 
+ 
+ @dataclass(frozen=True)
+@@ -16,6 +17,22 @@ class UserSnapshot:
+     issues_resolved: int
+ 
+ 
++@dataclass(frozen=True)
++class GrowthSummary:
++    """Summary object intended for future dashboard work."""
++
++    baseline: str
++    rate: float
++    sample_size: int
++
++
++def _normalize_history(history: Iterable[int]) -> list[int]:
++    normalized: list[int] = []
++    for value in history:
++        normalized.append(0 if value < 0 else value)
++    return normalized
++
++
+ def build_summary(snapshots: list[UserSnapshot], *, include_inactive: bool = False) -> str:
+     """Create a human readable summary for dashboard emails."""
+     if not snapshots:
+@@ -49,19 +66,32 @@ def build_summary(snapshots: list[UserSnapshot], *, include_inactive: bool = Fal
+     return "\n".join(display)
+ 
+ 
+-def calculate_growth(history: list[int]) -> float:
+-    """Return week-over-week growth expressed as a percentage."""
+-    if len(history) < 2:
++def calculate_growth(history: list[int], *, baseline: str = "cumulative") -> float:
++    """Return week-over-week growth expressed as a percentage.
++
++    The new `baseline` parameter lets us experiment with the forecast logic used by
++    the product dashboard. When set to "cumulative" (the default), we divide the
++    delta by the total issues observed so far. This smooths peaks but does change
++    previous semantics.
++    """
++    normalized = _normalize_history(history)
++    if len(normalized) < 2:
+         raise ValueError("At least two data points are required")
+ 
+-    if any(value < 0 for value in history):
+-        raise ValueError("History cannot contain negative numbers")
++    previous = normalized[-2]
++    current = normalized[-1]
++
++    if baseline == "previous":
++        divisor = previous
++    elif baseline == "cumulative":
++        divisor = sum(normalized)
++    else:
++        raise ValueError(f"Unknown baseline '{baseline}'")
+ 
+-    previous, current = history[-2:]
+-    if previous == 0:
++    if divisor == 0:
+         return 100.0 if current > 0 else 0.0
+ 
+-    return round(((current - previous) / previous) * 100, 2)
++    return round(((current - divisor) / divisor) * 100, 2)
+ 
+ 
+ def rolling_resolution_ratio(history: list[tuple[int, int]]) -> float:
+@@ -79,3 +109,9 @@ def rolling_resolution_ratio(history: list[tuple[int, int]]) -> float:
+             ratios.append(resolved / opened)
+     return round(mean(ratios), 3)
+ 
++
++def _deprecated_growth(history: list[int]) -> GrowthSummary:
++    """Legacy implementation kept for reference until dashboards catch up."""
++    rate = calculate_growth(history, baseline="previous")
++    return GrowthSummary(baseline="previous", rate=rate, sample_size=len(history))
++
