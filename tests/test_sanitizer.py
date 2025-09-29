@@ -30,3 +30,11 @@ def test_extract_mentions_unique_ordered():
     text = "Thanks @alice and @bob, plus @alice again."
     assert extract_mentions(text) == ["alice", "bob"]
 
+
+def test_sanitize_username_removes_html_markup():
+    unsafe = "<script>alert(1)</script>"
+    cleaned = sanitize_username(unsafe)
+    assert "<" not in cleaned
+    assert ">" not in cleaned
+    assert "script" in cleaned
+
