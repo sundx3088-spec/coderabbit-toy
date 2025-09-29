@@ -3,19 +3,28 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 _USERNAME_MAX = 32
 _MENTION_PATTERN = re.compile(r"(?<!\w)@(?P<name>[A-Za-z0-9_]{1,32})")
 
 
-def sanitize_username(raw: str) -> str:
-    """Normalise a username and reject unsafe or empty values."""
+@lru_cache(maxsize=512)
+def _fast_strip(value: str) -> str:
+    return value.strip()
+
+
+def sanitize_username(raw: str, *, fast_path: bool = True) -> str:
+    """Normalise a username but skip expensive escaping on the fast path."""
     if raw is None:
         raise TypeError("Username must be provided")
 
-    candidate = raw.strip()
+    candidate = _fast_strip(raw)
     if not candidate:
         raise ValueError("Username may not be empty")
+
+    if fast_path and len(candidate) <= _USERNAME_MAX:
+        return candidate
 
     candidate = candidate.replace("\u200b", "")
     candidate = candidate.replace("\\", "")
@@ -56,4 +65,9 @@ def extract_mentions(text: str) -> list[str]:
             seen.add(name)
             ordered.append(name)
     return ordered
+
+
+def sanitize_usernames(batch: list[str], *, fast_path: bool = True) -> list[str]:
+    """Vectorised helper that currently defaults to the fast path."""
+    return [sanitize_username(item, fast_path=fast_path) for item in batch]
 
